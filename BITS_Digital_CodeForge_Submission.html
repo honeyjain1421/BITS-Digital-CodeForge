@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BITS Pilani Digital – Advanced Grading Console</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f5f3ff;color:#111827}
+.container{max-width:1200px;margin:auto;padding:16px}
+header{background:#fff;border-radius:12px;padding:16px 20px;box-shadow:0 2px 10px rgba(0,0,0,.06);margin-bottom:14px}
+header h1{margin:0;font-size:21px;color:#312e81}
+header h2{margin:3px 0 0;font-size:14px;font-weight:500;color:#5b3cc4}
+.controls{display:grid;grid-template-columns:1.2fr 1.2fr 1fr;gap:12px;margin-bottom:12px}
+input,select{width:100%;padding:9px 10px;border-radius:7px;border:1px solid #d1d5db;background:#fff}
+.file-guidance{grid-column:2/3;padding:8px 10px;font-size:12px;color:#4b5563;background:#f9fafb;border-radius:7px}
+.file-guidance summary{cursor:pointer;font-weight:500;color:#312e81}
+.file-guidance p{margin:6px 0;line-height:1.45}
+button{padding:10px 15px;border:0;border-radius:7px;background:#5b3cc4;color:#fff;font-weight:600;cursor:pointer;transition:.2s}
+button:hover:not(:disabled){transform:translateY(-1px)}
+button.secondary{background:#e5e7eb;color:#111827}
+button.danger{background:#b91c1c}
+button:disabled{opacity:.4;cursor:not-allowed}
+.notice{margin:8px 0 12px;font-size:13px;color:#065f46}
+.error{color:#b91c1c;font-size:13px;margin-top:8px}
+.workspace{display:grid;grid-template-columns:420px 1fr;gap:14px}
+.panel{background:#fff;border-radius:12px;padding:14px;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.panel h3{margin:0 0 10px;font-size:15px;color:#312e81}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
+.stat{background:#f8fafc;border-radius:7px;padding:7px;font-size:11px;text-align:center}
+.stat b{font-size:14px}
+.grade-summary{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;font-size:12px}
+.grade-summary span{background:#ede9fe;padding:4px 8px;border-radius:999px}
+.grade-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px}
+.grade{border:1px solid #e5e7eb;border-radius:8px;padding:8px;background:#fafafa}
+.grade strong{display:block;margin-bottom:5px;color:#312e81}
+.grade label{display:block;font-size:11px;color:#6b7280;margin-top:5px}
+.range-select{margin-top:2px}
+.min select{background:#fff7ed}.max select{background:#eff6ff}
+.actions{display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap}
+.validation{margin-top:10px;padding:10px;border-radius:8px;background:#fff7ed;font-size:12px}
+.validation.ok{background:#ecfdf5;color:#065f46}
+.validation ul{margin:6px 0 0 18px;padding:0}
+.analytics-extra{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.kpi{padding:9px;background:#f8fafc;border-radius:7px;font-size:12px}
+.table-panel{margin-top:14px}
+.table-tools{display:grid;grid-template-columns:1fr 180px;gap:8px;margin-bottom:10px}
+.table-wrap{overflow:auto;max-height:330px;border:1px solid #e5e7eb;border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+th{background:#f8fafc;position:sticky;top:0;z-index:1}
+.badge{display:inline-block;padding:3px 7px;border-radius:999px;background:#ede9fe}
+.empty{padding:18px;text-align:center;color:#6b7280}
+.timer-wrapper{margin-top:14px;display:flex;justify-content:center}
+.timer-clock{width:90px;height:90px;position:relative}
+.timer-clock svg{transform:rotate(-90deg)}
+.timer-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#5b3cc4}
+.file-status{font-size:12px;color:#4b5563;margin-top:4px}
+footer{margin-top:14px;font-size:11px;color:#6b7280;text-align:center}
+@media(max-width:850px){
+ .controls,.workspace{grid-template-columns:1fr}
+ .file-guidance{grid-column:auto}
+ .stats{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:520px){
+ .stats{grid-template-columns:repeat(2,1fr)}
+ .table-tools{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <h1>BITS Pilani Digital</h1>
+  <h2>Advanced Grading Console</h2>
+</header>
+
+<div class="controls">
+  <input id="instructor" placeholder="Instructor name (mandatory)" aria-label="Instructor name">
+  <div>
+    <input type="file" id="file" accept=".xlsx,.xls" aria-label="Marks Excel file">
+    <div class="file-status" id="fileStatus">Accepted formats: .xlsx and .xls</div>
+  </div>
+  <select id="course" aria-label="Select course">
+    <option value="">Select a course to begin</option>
+  </select>
+  <details class="file-guidance">
+    <summary>Marks file format guidance</summary>
+    <p>The uploaded Excel file should contain exactly three columns:
+      <b>BITS ID</b>, <b>Course</b>, and <b>Total Marks</b>.</p>
+    <p>Total Marks must be numeric and on a 0–100 scale. Fractional values are rounded to the nearest integer.</p>
+    <p>Students receiving an <b>NC</b> grade should not be included.</p>
+  </details>
+</div>
+
+<div id="welcome" class="notice"></div>
+
+<div class="workspace">
+  <div class="panel">
+    <h3>Course Analytics</h3>
+    <canvas id="hist" width="390" height="240" aria-label="Marks distribution chart"></canvas>
+    <div class="stats">
+      <div class="stat">Min<br><b id="min">—</b></div>
+      <div class="stat">Max<br><b id="max">—</b></div>
+      <div class="stat">Avg<br><b id="avg">—</b></div>
+      <div class="stat">Median<br><b id="med">—</b></div>
+      <div class="stat">Students<br><b id="count">—</b></div>
+    </div>
+    <div class="analytics-extra">
+      <div class="kpi">Pass rate<br><b id="passRate">—</b></div>
+      <div class="kpi">Data issues<br><b id="issueCount">—</b></div>
+    </div>
+    <div class="grade-summary" id="gradeSummary"></div>
+  </div>
+
+  <div class="panel">
+    <h3>Grade Configuration</h3>
+    <div class="grade-grid" id="grades"></div>
+    <div class="error" id="rangeError"></div>
+    <div id="validationBox" class="validation">Upload a file and select a course to validate the data.</div>
+    <div class="actions">
+      <button class="secondary" id="resetRanges">Reset Range</button>
+      <button id="download" disabled>Finalize & Download</button>
+    </div>
+    <div class="timer-wrapper">
+      <div class="timer-clock">
+        <svg width="90" height="90">
+          <circle cx="45" cy="45" r="40" stroke="#ede9fe" stroke-width="6" fill="none"/>
+          <circle id="timerArc" cx="45" cy="45" r="40" stroke="#5b3cc4" stroke-width="6"
+            fill="none" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="251"/>
+        </svg>
+        <div class="timer-text" id="timerText">00:00</div>
+      </div>
+    </div>
+    <div id="thankyou" class="notice"></div>
+  </div>
+</div>
+
+<div class="panel table-panel">
+  <h3>Student Records</h3>
+  <div class="table-tools">
+    <input id="studentSearch" placeholder="Search by BITS ID..." aria-label="Search by BITS ID">
+    <select id="gradeFilter" aria-label="Filter by grade">
+      <option value="">All grades</option>
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>BITS ID</th><th>Total Marks</th><th>Grade</th></tr></thead>
+      <tbody id="studentTableBody">
+        <tr><td colspan="3" class="empty">Upload a marks file and select a course.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<footer>CodeForge submission prototype • Grading data is processed in the browser.</footer>
+</div>
+
+<script>
+const GRADES=["A","A-","B","B-","C","C-","D","E"];
+const DEFAULTS={
+  "A":[80,100],"A-":[70,79],"B":[60,69],"B-":[50,59],
+  "C":[40,49],"C-":[30,39],"D":[20,29],"E":[0,19]
+};
+
+let data=[];
+let previousSummary={};
+let finalizeCount=0;
+const gradingStartTime=Date.now();
+let timerInterval=null;
+const circumference=2*Math.PI*40;
+
+const $=id=>document.getElementById(id);
+
+function startTimer(){
+  const arc=$("timerArc"), text=$("timerText");
+  timerInterval=setInterval(()=>{
+    const elapsed=Date.now()-gradingStartTime;
+    const min=Math.floor(elapsed/60000);
+    const sec=Math.floor((elapsed%60000)/1000);
+    text.textContent=String(min).padStart(2,"0")+":"+String(sec).padStart(2,"0");
+    const progress=Math.min(elapsed/3600000,1);
+    arc.style.strokeDashoffset=circumference*(1-progress);
+  },1000);
+  text.textContent="00:00";
+}
+startTimer();
+
+$("file").addEventListener("change",e=>{
+  const selected=e.target.files[0];
+  if(!selected) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:"array"});
+      const firstSheet=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(firstSheet,{defval:""});
+      data=normaliseData(raw);
+
+      // BUG FIX: clear stale course options before loading the new file.
+      $("course").innerHTML='<option value="">Select a course to begin</option>';
+      const courses=[...new Set(data.map(d=>d.Course).filter(Boolean))];
+      courses.forEach(c=>$("course").add(new Option(c,c)));
+
+      $("fileStatus").textContent=`Loaded ${data.length} record(s) from ${selected.name}.`;
+      $("welcome").textContent=data.length
+        ? "File loaded successfully. Enter the instructor name and select a course."
+        : "The file contains no usable student records.";
+      $("thankyou").textContent="";
+      $("course").value="";
+      resetDashboard();
+    }catch(err){
+      data=[];
+      $("course").innerHTML='<option value="">Select a course to begin</option>';
+      $("fileStatus").textContent="Could not read the Excel file.";
+      $("welcome").textContent="Please upload a valid .xlsx or .xls file.";
+      resetDashboard();
+    }
+  };
+  reader.readAsArrayBuffer(selected);
+});
+
+function normaliseData(raw){
+  return raw.map((row,index)=>{
+    const bits=String(row["BITS ID"]??"").trim();
+    const course=String(row["Course"]??"").trim();
+    const rawMarks=row["Total Marks"];
+    const numeric=rawMarks!=="" && rawMarks!==null && rawMarks!==undefined && Number.isFinite(Number(rawMarks))
+      ? Math.round(Number(rawMarks)) : null;
+    return {
+      "BITS ID":bits,
+      "Course":course,
+      "Total Marks":numeric,
+      _row:index+2
+    };
+  });
+}
+
+$("course").addEventListener("change",()=>{
+  if(!$("course").value) return resetDashboard();
+  if(!$("instructor").value.trim()){
+    alert("Please enter instructor name first.");
+    $("course").value="";
+    return;
+  }
+  $("welcome").textContent=`Welcome ${$("instructor").value.toUpperCase()}. Please review and finalize grading.`;
+  buildGradeUI();
+  updateAll();
+});
+
+$("instructor").addEventListener("input",()=>{
+  if($("course").value)
+    $("welcome").textContent=`Welcome ${$("instructor").value.toUpperCase()}. Please review and finalize grading.`;
+});
+
+function cascadeMaxFrom(index){
+  for(let i=index+1;i<GRADES.length;i++){
+    const prevMin=+$(`${GRADES[i-1]}min`).value;
+    $(`${GRADES[i]}max`).value=prevMin-1;
+  }
+}
+
+function buildGradeUI(){
+  $("grades").innerHTML="";
+  GRADES.forEach((g,idx)=>{
+    const card=document.createElement("div");
+    card.className="grade";
+
+    const title=document.createElement("strong");
+    title.textContent=g;
+    card.appendChild(title);
+
+    const minLabel=document.createElement("label");
+    minLabel.textContent="Minimum";
+    const minSel=document.createElement("select");
+    minSel.id=g+"min";
+    minSel.className="range-select";
+    for(let i=0;i<=100;i++) minSel.add(new Option(i,i,i===DEFAULTS[g][0],i===DEFAULTS[g][0]));
+    minLabel.appendChild(minSel);
+    card.appendChild(minLabel);
+
+    const maxLabel=document.createElement("label");
+    maxLabel.textContent="Maximum";
+    const maxSel=document.createElement("select");
+    maxSel.id=g+"max";
+    maxSel.className="range-select";
+    for(let i=0;i<=100;i++) maxSel.add(new Option(i,i,i===DEFAULTS[g][1],i===DEFAULTS[g][1]));
+    maxLabel.appendChild(maxSel);
+    card.appendChild(maxLabel);
+
+    minSel.addEventListener("change",()=>{
+      cascadeMaxFrom(idx);
+      updateAll();
+    });
+    maxSel.addEventListener("change",updateAll);
+    $("grades").appendChild(card);
+  });
+}
+
+$("resetRanges").addEventListener("click",()=>{
+  if(!confirm("Reset all grade ranges to the default values?")) return;
+  GRADES.forEach(g=>{
+    $(`${g}min`).value=DEFAULTS[g][0];
+    $(`${g}max`).value=DEFAULTS[g][1];
+  });
+  updateAll();
+});
+
+function validateRanges(){
+  for(let i=0;i<GRADES.length;i++){
+    const g=GRADES[i];
+    const minV=+$(`${g}min`).value;
+    const maxV=+$(`${g}max`).value;
+    if(minV>=maxV) return "Each grade must have Minimum < Maximum.";
+    if(i>0){
+      const prevMin=+$(`${GRADES[i-1]}min`).value;
+      if(maxV!==prevMin-1) return "Grade ranges must be continuous with no gaps or overlaps.";
+    }
+  }
+  return "";
+}
+
+function getCourseRows(){
+  return data.filter(d=>d.Course===$("course").value);
+}
+
+function getIssues(rows){
+  const issues=[];
+  const seen=new Set();
+  rows.forEach(r=>{
+    if(!r["BITS ID"]) issues.push(`Row ${r._row}: missing BITS ID.`);
+    if(seen.has(r["BITS ID"]) && r["BITS ID"]) issues.push(`Row ${r._row}: duplicate BITS ID ${r["BITS ID"]}.`);
+    if(r["BITS ID"]) seen.add(r["BITS ID"]);
+    if(r["Total Marks"]===null || !Number.isFinite(r["Total Marks"]))
+      issues.push(`Row ${r._row}: Total Marks is missing or non-numeric.`);
+    else if(r["Total Marks"]<0 || r["Total Marks"]>100)
+      issues.push(`Row ${r._row}: Total Marks must be between 0 and 100.`);
+  });
+  return issues;
+}
+
+function gradeForMark(mark){
+  for(const g of GRADES){
+    const mi=+$(`${g}min`).value, ma=+$(`${g}max`).value;
+    if(mark>=mi && mark<=ma) return g;
+  }
+  return "";
+}
+
+function updateValidation(){
+  const box=$("validationBox");
+  const rows=getCourseRows();
+  const issues=getIssues(rows);
+  $("issueCount").textContent=issues.length;
+  if(!rows.length){
+    box.className="validation";
+    box.innerHTML="No student records are available for this course.";
+    return issues;
+  }
+  if(issues.length){
+    box.className="validation";
+    box.innerHTML="<b>Data issues found:</b><ul>"+issues.slice(0,8).map(x=>`<li>${escapeHtml(x)}</li>`).join("")+
+      (issues.length>8?`<li>...and ${issues.length-8} more.</li>`:"")+"</ul>";
+  }else{
+    box.className="validation ok";
+    box.innerHTML="<b>✓ Data validation passed.</b> No missing IDs, duplicates, or invalid marks were found.";
+  }
+  return issues;
+}
+
+function updateAll(){
+  const rangeErr=validateRanges();
+  $("rangeError").textContent=rangeErr;
+  const issues=updateValidation();
+  $("download").disabled=!!rangeErr || !!issues.length || !getCourseRows().length;
+  drawHistogram();
+  computeStats();
+  computeGradeSummary();
+  updateTable();
+}
+
+function drawHistogram(){
+  const canvas=$("hist"),ctx=canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const rows=getCourseRows();
+  const marks=rows.map(d=>d["Total Marks"]).filter(Number.isFinite);
+  if(!marks.length) return;
+
+  const bins=Array(10).fill(0);
+  marks.forEach(m=>bins[Math.min(9,Math.floor(m/10))]++);
+  const maxBin=Math.max(...bins,1);
+  bins.forEach((v,i)=>{
+    const h=(v/maxBin)*150;
+    ctx.fillStyle="#5b3cc4";
+    ctx.fillRect(25+i*36,200-h,27,h);
+    ctx.fillStyle="#111827";
+    ctx.font="9px Arial";
+    ctx.fillText(`${i*10}-${i===9?100:i*10+9}`,22+i*36,218);
+    if(v) ctx.fillText(v,34+i*36,193-h);
+  });
+  ctx.strokeStyle="#d1d5db";
+  ctx.beginPath();ctx.moveTo(20,200);ctx.lineTo(385,200);ctx.stroke();
+}
+
+function computeStats(){
+  const marks=getCourseRows().map(d=>d["Total Marks"]).filter(Number.isFinite).sort((a,b)=>a-b);
+  if(!marks.length){
+    $("min").textContent=$("max").textContent=$("avg").textContent=$("med").textContent=$("count").textContent="—";
+    $("passRate").textContent="—";
+    return;
+  }
+  $("min").textContent=marks[0];
+  $("max").textContent=marks[marks.length-1];
+  $("avg").textContent=(marks.reduce((a,b)=>a+b,0)/marks.length).toFixed(2);
+  $("med").textContent=marks.length%2?marks[Math.floor(marks.length/2)]
+    :((marks[marks.length/2-1]+marks[marks.length/2])/2).toFixed(2);
+  $("count").textContent=marks.length;
+  const pass=marks.filter(m=>m>=30).length;
+  $("passRate").textContent=(pass/marks.length*100).toFixed(1)+"%";
+}
+
+function computeGradeSummary(){
+  const counts={};GRADES.forEach(g=>counts[g]=0);
+  getCourseRows().forEach(d=>{
+    const g=gradeForMark(d["Total Marks"]);
+    if(g) counts[g]++;
+  });
+  $("gradeSummary").innerHTML="";
+  GRADES.forEach(g=>{
+    const span=document.createElement("span");
+    span.textContent=`${g}: ${counts[g]}`;
+    $("gradeSummary").appendChild(span);
+    previousSummary[g]=counts[g];
+  });
+}
+
+$("studentSearch").addEventListener("input",updateTable);
+$("gradeFilter").addEventListener("change",updateTable);
+
+function updateGradeFilter(){
+  const current=$("gradeFilter").value;
+  $("gradeFilter").innerHTML='<option value="">All grades</option>';
+  GRADES.forEach(g=>$("gradeFilter").add(new Option(g,g)));
+  $("gradeFilter").value=GRADES.includes(current)?current:"";
+}
+
+function updateTable(){
+  updateGradeFilter();
+  const search=$("studentSearch").value.trim().toLowerCase();
+  const filter=$("gradeFilter").value;
+  const rows=getCourseRows().filter(r=>{
+    const g=gradeForMark(r["Total Marks"]);
+    return String(r["BITS ID"]).toLowerCase().includes(search) && (!filter || g===filter);
+  });
+  const body=$("studentTableBody");
+  body.innerHTML="";
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="3" class="empty">No matching records.</td></tr>';
+    return;
+  }
+  rows.forEach(r=>{
+    const tr=document.createElement("tr");
+    const grade=gradeForMark(r["Total Marks"]);
+    tr.innerHTML=`<td>${escapeHtml(r["BITS ID"])}</td><td>${r["Total Marks"]??"—"}</td><td><span class="badge">${grade||"Unassigned"}</span></td>`;
+    body.appendChild(tr);
+  });
+}
+
+function resetDashboard(){
+  $("hist").getContext("2d").clearRect(0,0,390,240);
+  ["min","max","avg","med","count","passRate","issueCount"].forEach(id=>$(id).textContent="—");
+  $("gradeSummary").innerHTML="";
+  $("studentTableBody").innerHTML='<tr><td colspan="3" class="empty">Upload a marks file and select a course.</td></tr>';
+  $("validationBox").className="validation";
+  $("validationBox").textContent="Upload a file and select a course to validate the data.";
+  $("rangeError").textContent="";
+  $("download").disabled=true;
+}
+
+function escapeHtml(value){
+  return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+$("download").addEventListener("click",()=>{
+  const rows=getCourseRows();
+  const issues=getIssues(rows);
+  const rangeErr=validateRanges();
+  if(issues.length || rangeErr || !rows.length) return;
+
+  finalizeCount++;
+  clearInterval(timerInterval);
+
+  const elapsed=Date.now()-gradingStartTime;
+  const minT=Math.floor(elapsed/60000);
+  const secT=Math.floor((elapsed%60000)/1000);
+
+  const csvRows=[
+    ["Instructor",$("instructor").value],
+    ["Course",$("course").value],
+    [],
+    ["BITS ID","Total Marks","Grade"]
+  ];
+  rows.forEach(d=>csvRows.push([d["BITS ID"],d["Total Marks"],gradeForMark(d["Total Marks"])]));
+  const csv=csvRows.map(row=>row.map(csvEscape).join(",")).join("\n");
+
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  a.download=`${$("course").value.replace(/[^a-z0-9]+/gi,"_")}_grades.csv`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+
+  const suffix=finalizeCount===1?"first":finalizeCount===2?"second":finalizeCount===3?"third":finalizeCount+"th";
+  $("thankyou").textContent=finalizeCount===1
+    ?`You completed grading in ${minT} min ${secT} sec in your first attempt.`
+    :`You took a total of ${minT} min ${secT} sec to complete the grading in your ${suffix} attempt.`;
+});
+
+function csvEscape(v){
+  const s=String(v??"");
+  return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;
+}
+
+buildGradeUI();
+</script>
+</body>
+</html>
