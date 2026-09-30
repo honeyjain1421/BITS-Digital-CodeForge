@@ -178,7 +178,7 @@ No installation is required.
 Download or clone the repository and double-click:
 
 ```text
-BITS_Digital_CodeForge_Submission.html
+index.html
 ```
 
 The application will open directly in your web browser.
@@ -202,7 +202,7 @@ Then open the local address shown by the server in your browser.
 ```text
 BITS-Digital-CodeForge/
 │
-├── BITS_Digital_CodeForge_Submission.html
+├── index.html
 └── README.md
 ```
 
